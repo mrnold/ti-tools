@@ -38,6 +38,8 @@ def main(args):
             binaryfile.write(binary[address])
             prevsize = len(binary[address])
             previous = address
+    highest = ordered[-1]+len(binary[ordered[-1]])
+    print "Highest address: {0:x}".format(highest)
 
 if __name__ == "__main__":
     main(sys.argv)
