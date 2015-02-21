@@ -40,8 +40,6 @@ def main(args):
             previous = address
     highest = ordered[-1]+len(binary[ordered[-1]])
     print "Highest address: {0:x}".format(highest)
-    if highest > 0xfa70:
-        print "WARNING: program size is likely too big!"
 
 if __name__ == "__main__":
     main(sys.argv)
