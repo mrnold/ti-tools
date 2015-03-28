@@ -7,10 +7,10 @@ def main(args):
         print "Usage: python trim.py [file.map] [file.bin] [base offset]"
         return
 
-    class Pair(): pass
-    initializer = Pair()
-    initialized = Pair()
-    zeroglobals = Pair()
+    class Triple(): pass
+    initializer = Triple()
+    initialized = Triple()
+    zeroglobals = Triple()
     offset = int(args[3], 16)
     with open(args[1]) as mapfile:
         for line in mapfile:
@@ -31,13 +31,18 @@ def main(args):
                 zeroglobals.size = int(parts[2], 16)
                 zeroglobals.end = zeroglobals.offset+zeroglobals.size
 
+    if not hasattr(initialized, "offset") or \
+       not hasattr(initializer, "offset") or \
+       not hasattr(zeroglobals, "offset"):
+           print "Map file has no globals, no relocations necessary."
+           sys.exit(0)
 
-    print "Initialized: offset 0x",
-    print "{0:x} size {1}".format(initialized.offset, initialized.size)
-    print "Initializer: offset 0x",
-    print "{0:x} size {1}".format(initializer.offset, initializer.size)
-    print "Global variables: offset 0x",
-    print "{0:x} size {1}".format(zeroglobals.offset, zeroglobals.size)
+    print "Initialized: offset 0x{0:x}".format(initialized.offset),
+    print "size {0}".format(initialized.size)
+    print "Initializer: offset 0x{0:x}".format(initializer.offset),
+    print "size {0}".format(initializer.size)
+    print "Global variables: offset 0x{0:x}".format(zeroglobals.offset),
+    print "size {0}".format(zeroglobals.size)
 
     with open(args[2], "r+b") as binfile:
         mapped = mmap.mmap(binfile.fileno(), 0, access=mmap.ACCESS_WRITE)
