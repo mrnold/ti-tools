@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import struct
 
 # TI-86 program variable passes:
@@ -32,8 +33,8 @@ class Ti86(object):
             fmt = structfmt.format(length)
             program = struct.pack(fmt, *transform(program))
 
-        programfilename = programname+".86p"
-        with open(programfilename, 'wb') as programfile:
+        self.programfilename = programname+".86p"
+        with open(self.programfilename, 'wb') as programfile:
             programfile.write(program)
 
 # TI-84+ Silver Edition program variable passes:
@@ -64,11 +65,12 @@ class Ti84PSE(object):
         program = programdata
         for structfmt, transform in passes:
             length = len(program)
+            print "New length: {0}".format(length)
             fmt = structfmt.format(length)
             program = struct.pack(fmt, *transform(program))
 
-        programfilename = programname+".8xp"
-        with open(programfilename, 'wb') as programfile:
+        self.programfilename = programname+".8xp"
+        with open(self.programfilename, 'wb') as programfile:
             programfile.write(program)
 
 def getmodel(model):
@@ -85,9 +87,12 @@ def getmodel(model):
 
 
 def main(args):
-    if len(args) != 3:
-        print "Usage: python test.py [86,84pse] [file.bin]"
+    if len(args) < 3:
+        print "Usage: python test.py [86,84pse] [file.bin] {output}"
         return
+    copyto = None
+    if len(args) == 4:
+        copyto = sys.argv[3]
     filename = sys.argv[2]
     datalength = os.path.getsize(filename)
     print datalength
@@ -100,6 +105,8 @@ def main(args):
     ti = model(programname, programdata)
     if len(programdata) > 9000:
         print "Program is likely too large: {0} bytes!".format(len(programdata))
+    if copyto is not None:
+        shutil.copyfile(ti.programfilename, copyto)
 
 if __name__ == "__main__":
     main(sys.argv)
