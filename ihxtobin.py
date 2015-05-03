@@ -1,3 +1,4 @@
+import os
 import sys
 import binascii
 
@@ -28,7 +29,8 @@ def main(args):
     ordered = sorted(binary.keys())
     previous = ordered[0]
     prevsize = len(binary[ordered[0]])
-    with open(args[1]+".bin", "wb") as binaryfile:
+    filename, _ = os.path.splitext(args[1])
+    with open(filename+".bin", "wb") as binaryfile:
         for address in ordered:
             if previous+prevsize < address:
                 missing = previous+prevsize
