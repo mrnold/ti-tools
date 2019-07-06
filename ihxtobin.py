@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import binascii
 
 def main(args):
     if args is None or len(args) < 2:
-        print "python ihx2bin.py [file.ihx]"
+        print("python ihx2bin.py [file.ihx]")
         return
 
     binary = {}
@@ -17,14 +19,14 @@ def main(args):
             if record == 0:
                 data = binascii.unhexlify(line[9:9+2*bytecount])
                 if address in binary.keys():
-                    print "Overlapping address 0x{0:x}".format(address)
+                    print("Overlapping address 0x{0:x}".format(address))
                     return
                 else:
                     binary[address] = data
             elif record == 1:
                 pass
             else:
-                print "Unsupported record type at 0x{0:x}!".format(address)
+                print("Unsupported record type at 0x{0:x}!".format(address))
 
     ordered = sorted(binary.keys())
     previous = ordered[0]
@@ -35,13 +37,13 @@ def main(args):
             if previous+prevsize < address:
                 missing = previous+prevsize
                 missingsize = address-missing
-                print "Empty space detected at 0x{0:x}-0x{1:x}, padding with {2} bytes of 0xFF".format(missing, address, missingsize)
+                print("Empty space detected at 0x{0:x}-0x{1:x}, padding with {2} bytes of 0xFF".format(missing, address, missingsize))
                 binaryfile.write(b'\xff'*missingsize)
             binaryfile.write(binary[address])
             prevsize = len(binary[address])
             previous = address
     highest = ordered[-1]+len(binary[ordered[-1]])
-    print "Highest address: {0:x}".format(highest)
+    print("Highest address: {0:x}".format(highest))
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 import sys
 import mmap
 import binascii
 
 def main(args):
     if args is None or len(args) != 4:
-        print "Usage: python trim.py [file.map] [file.bin] [base offset]"
+        print("Usage: python trim.py [file.map] [file.bin] [base offset]")
         return
 
     class Triple(): pass
@@ -34,20 +36,20 @@ def main(args):
     if not hasattr(initialized, "offset") or \
        not hasattr(initializer, "offset") or \
        not hasattr(zeroglobals, "offset"):
-           print "Map file has no globals, no relocations necessary."
+           print("Map file has no globals, no relocations necessary.")
            sys.exit(0)
 
-    print "Initialized: offset 0x{0:x}".format(initialized.offset),
-    print "size {0}".format(initialized.size)
-    print "Initializer: offset 0x{0:x}".format(initializer.offset),
-    print "size {0}".format(initializer.size)
-    print "Global variables: offset 0x{0:x}".format(zeroglobals.offset),
-    print "size {0}".format(zeroglobals.size)
+    print("Initialized: offset 0x{0:x}".format(initialized.offset),)
+    print("size {0}".format(initialized.size))
+    print("Initializer: offset 0x{0:x}".format(initializer.offset),)
+    print("size {0}".format(initializer.size))
+    print("Global variables: offset 0x{0:x}".format(zeroglobals.offset),)
+    print("size {0}".format(zeroglobals.size))
 
     with open(args[2], "r+b") as binfile:
         mapped = mmap.mmap(binfile.fileno(), 0, access=mmap.ACCESS_WRITE)
         data = mapped[initializer.offset:initializer.end]
-        print "Data to move: {0}".format(binascii.hexlify(data))
+        print("Data to move: {0}".format(binascii.hexlify(data)))
         mapped.move(initialized.offset, initializer.offset, initializer.size)
         mapped.resize(mapped.size()-initialized.size)
         mapped.seek(zeroglobals.offset)

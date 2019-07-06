@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import shutil
@@ -12,18 +14,28 @@ import struct
 class Ti86(object):
     def __init__(self, programname, programdata, comment="No comment"):
         self.programname = os.path.basename(programname)
-        print "Program name: {0}".format(self.programname)
-        self.comment = comment
+        self.programname = self.programname.ljust(8, '\0')[0:8]
+        if not isinstance(self.programname, bytes):
+            self.programname = self.programname.encode("ascii")
+        print("Program name: {0}".format(self.programname.decode("ascii")))
+
+        self.comment = comment[0:42]
+        if not isinstance(comment, bytes):
+            self.comment = comment.encode("ascii")
+
+        fixedmodel = "**TI86**"
+        if not isinstance(fixedmodel, bytes):
+            fixedmodel = fixedmodel.encode("ascii")
 
         passes = [
                 ("<H{0}s", lambda p: [0x288e, p]),
                 ("<H{0}s", lambda p: [len(p), p]),
                 ("<HHBB8sH{0}s", lambda p: [
-                    0x000C, len(p), 0x12, len(self.programname),
-                    self.programname.ljust(8, '\0')[0:8], len(p), p]),
+                    0x000C, len(p), 0x12, 8,
+                     self.programname, len(p), p]),
                 ("<8s3B42sH{0}s", lambda p: [
-                    "**TI86**", 0x1a, 0x0a, 0x00,
-                    self.comment[0:42], len(p), p]),
+                    fixedmodel, 0x1a, 0x0a, 0x00,
+                    self.comment, len(p), p]),
                 ("<{0}sH", lambda p: [p, sum(bytearray(p)) & 0xFFFF])
         ]
 
@@ -46,26 +58,36 @@ class Ti86(object):
 class Ti84PSE(object):
     def __init__(self, programname, programdata, comment="No comment"):
         self.programname = os.path.basename(programname)
-        print "Program name: {0}".format(self.programname)
-        self.comment = comment
+        self.programname = self.programname.ljust(8, '\0')[0:8]
+        if not isinstance(self.programname, bytes):
+            self.programname = self.programname.encode("ascii")
+        print("Program name: {0}".format(self.programname.decode("ascii")))
+
+        self.comment = comment[0:42]
+        if not isinstance(comment, bytes):
+            self.comment = comment.encode("ascii")
+
+        fixedmodel = "**TI83F*"
+        if not isinstance(fixedmodel, bytes):
+            fixedmodel = fixedmodel.encode("ascii")
 
         passes = [
                 ("<H{0}s", lambda p: [0x6dbb, p]),
                 ("<H{0}s", lambda p: [len(p), p]),
                 ("<HHB8sBBH{0}s", lambda p: [
                     0x000D, len(p), 0x06,
-                    self.programname.ljust(8, '\0').upper()[0:8],
+                    self.programname,
                     0x00, 0x00, len(p), p]),
                 ("<8s3B42sH{0}s", lambda p: [
-                    "**TI83F*", 0x1a, 0x0a, 0x00,
-                    self.comment[0:42], len(p), p]),
+                    fixedmodel, 0x1a, 0x0a, 0x00,
+                    self.comment, len(p), p]),
                 ("<{0}sH", lambda p: [p, sum(bytearray(p)) & 0xFFFF])
         ]
 
         program = programdata
         for structfmt, transform in passes:
             length = len(program)
-            print "New length: {0}".format(length)
+            print("New length: {0}".format(length))
             fmt = structfmt.format(length)
             program = struct.pack(fmt, *transform(program))
 
@@ -81,30 +103,30 @@ def getmodel(model):
         "ti84pse": Ti84PSE
     }
     if not model in classes.keys():
-        print "Unknown model: {0}".format(model)
+        print("Unknown model: {0}".format(model))
         return None
     return classes[model]
 
 
 def main(args):
     if len(args) < 3:
-        print "Usage: python test.py [86,84pse] [file.bin] {output}"
+        print("Usage: python test.py [86,84pse] [file.bin] {output}")
         return
     copyto = None
     if len(args) == 4:
         copyto = sys.argv[3]
     filename = sys.argv[2]
     datalength = os.path.getsize(filename)
-    print datalength
+    print(datalength)
     with open(filename, 'rb') as datafile:
         programdata = datafile.read()
-    print len(programdata)
+    print(len(programdata))
     programname, _ = os.path.splitext(filename)
-    print programname
+    print(programname)
     model = getmodel(sys.argv[1])
     ti = model(programname, programdata)
     if len(programdata) > 9000:
-        print "Program is likely too large: {0} bytes!".format(len(programdata))
+        print("Program is likely too large: {0} bytes!".format(len(programdata)))
     if copyto is not None:
         shutil.copyfile(ti.programfilename, copyto)
 
