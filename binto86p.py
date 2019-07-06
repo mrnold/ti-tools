@@ -12,42 +12,17 @@ import struct
 # Pass 4: **TI86**, 0x1a, 0x0a, 0x00, comment, data section length
 # Pass 5: append checksum
 class Ti86(object):
-    def __init__(self, programname, programdata, comment="No comment"):
-        self.programname = os.path.basename(programname)
-        self.programname = self.programname.ljust(8, '\0')[0:8]
-        if not isinstance(self.programname, bytes):
-            self.programname = self.programname.encode("ascii")
-        print("Program name: {0}".format(self.programname.decode("ascii")))
+    extension = ".86p"
+    fixedmodel = "**TI86**"
+    maximumsize = 9000
 
-        self.comment = comment[0:42]
-        if not isinstance(comment, bytes):
-            self.comment = comment.encode("ascii")
-
-        fixedmodel = "**TI86**"
-        if not isinstance(fixedmodel, bytes):
-            fixedmodel = fixedmodel.encode("ascii")
-
-        passes = [
-                ("<H{0}s", lambda p: [0x288e, p]),
-                ("<H{0}s", lambda p: [len(p), p]),
-                ("<HHBB8sH{0}s", lambda p: [
-                    0x000C, len(p), 0x12, 8,
-                     self.programname, len(p), p]),
-                ("<8s3B42sH{0}s", lambda p: [
-                    fixedmodel, 0x1a, 0x0a, 0x00,
-                    self.comment, len(p), p]),
-                ("<{0}sH", lambda p: [p, sum(bytearray(p)) & 0xFFFF])
-        ]
-
-        program = programdata
-        for structfmt, transform in passes:
-            length = len(program)
-            fmt = structfmt.format(length)
-            program = struct.pack(fmt, *transform(program))
-
-        self.programfilename = programname+".86p"
-        with open(self.programfilename, 'wb') as programfile:
-            programfile.write(program)
+    passes = [
+        ("<H{length}s", lambda **kw: [0x288e, kw["p"]]),
+        ("<H{length}s", lambda **kw: [len(kw["p"]), kw["p"]]),
+        ("<HHBB8sH{length}s", lambda **kw: [0x000C, len(kw["p"]), 0x12, 8, kw["n"], len(kw["p"]), kw["p"]]),
+        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00, kw["c"], len(kw["p"]), kw["p"]]),
+        ("<{length}sH", lambda **kw: [kw["p"], sum(bytearray(kw["p"])) & 0xFFFF])
+    ]
 
 # TI-84+ Silver Edition program variable passes:
 # Pass 1: Add 0x8E, 0x28 marker
@@ -56,57 +31,66 @@ class Ti86(object):
 # Pass 4: **TI83F*, 0x1a, 0x0a, 0x00, comment, data section length
 # Pass 5: append checksum
 class Ti84PSE(object):
-    def __init__(self, programname, programdata, comment="No comment"):
-        self.programname = os.path.basename(programname)
-        self.programname = self.programname.ljust(8, '\0')[0:8]
-        if not isinstance(self.programname, bytes):
-            self.programname = self.programname.encode("ascii")
-        print("Program name: {0}".format(self.programname.decode("ascii")))
+    extension = ".8xp"
+    fixedmodel = "**TI83F*"
+    maximumsize = 9000
 
-        self.comment = comment[0:42]
+    passes = [
+        ("<H{length}s", lambda **kw: [0x6dbb, kw["p"]]),
+        ("<H{length}s", lambda **kw: [len(kw["p"]), kw["p"]]),
+        ("<HHB8sBBH{length}s", lambda **kw: [0x000D, len(kw["p"]), 0x06, kw["n"], 0x00, 0x00, len(kw["p"]), kw["p"]]),
+        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00, kw["c"], len(kw["p"]), kw["p"]]),
+        ("<{length}sH", lambda **kw: [kw["p"], sum(bytearray(kw["p"])) & 0xFFFF])
+    ]
+
+class TiProgram(object):
+    def __init__(self, programname, programdata, model, comment="No comment"):
+        programname = os.path.basename(programname)
+        programname = programname.ljust(8, '\0')[0:8]
+        if not isinstance(programname, bytes):
+            programname = programname.encode("ascii")
+        print("On-calculator program name: {0}".format(programname.decode("ascii")))
+
+        comment = comment[0:42]
         if not isinstance(comment, bytes):
-            self.comment = comment.encode("ascii")
+            comment = comment.encode("ascii")
 
-        fixedmodel = "**TI83F*"
+        fixedmodel = model.fixedmodel
         if not isinstance(fixedmodel, bytes):
             fixedmodel = fixedmodel.encode("ascii")
 
-        passes = [
-                ("<H{0}s", lambda p: [0x6dbb, p]),
-                ("<H{0}s", lambda p: [len(p), p]),
-                ("<HHB8sBBH{0}s", lambda p: [
-                    0x000D, len(p), 0x06,
-                    self.programname,
-                    0x00, 0x00, len(p), p]),
-                ("<8s3B42sH{0}s", lambda p: [
-                    fixedmodel, 0x1a, 0x0a, 0x00,
-                    self.comment, len(p), p]),
-                ("<{0}sH", lambda p: [p, sum(bytearray(p)) & 0xFFFF])
-        ]
+        extension = model.extension
+        if not isinstance(extension, bytes):
+            extension = extension.encode("ascii")
 
         program = programdata
-        for structfmt, transform in passes:
+        for structfmt, transform in model.passes:
             length = len(program)
-            print("New length: {0}".format(length))
-            fmt = structfmt.format(length)
-            program = struct.pack(fmt, *transform(program))
+            fmt = structfmt.format(length=length)
+            program = struct.pack(fmt, *transform(p=program, m=fixedmodel, c=comment, n=programname))
 
-        self.programfilename = programname+".8xp"
+        if len(programdata) > model.maximumsize:
+            print("Program is likely too large: {0} bytes!".format(len(programdata)))
+
+        self.programfilename = programname+extension
         with open(self.programfilename, 'wb') as programfile:
             programfile.write(program)
+        if isinstance(self.programfilename, bytes):
+            self.programfilename = self.programfilename.decode("ascii")
+        print("Wrote {0}".format(self.programfilename))
 
-def getmodel(model):
-    classes = {
-        "86": Ti86,
-        "ti86": Ti86,
-        "84pse": Ti84PSE,
-        "ti84pse": Ti84PSE
-    }
-    if not model in classes.keys():
-        print("Unknown model: {0}".format(model))
-        return None
-    return classes[model]
-
+    @staticmethod
+    def getmodel(model):
+        classes = {
+            "86": Ti86,
+            "ti86": Ti86,
+            "84pse": Ti84PSE,
+            "ti84pse": Ti84PSE
+        }
+        if not model in classes.keys():
+            print("Unknown model: {0}".format(model))
+            return None
+        return classes[model]
 
 def main(args):
     if len(args) < 3:
@@ -117,16 +101,11 @@ def main(args):
         copyto = sys.argv[3]
     filename = sys.argv[2]
     datalength = os.path.getsize(filename)
-    print(datalength)
     with open(filename, 'rb') as datafile:
         programdata = datafile.read()
-    print(len(programdata))
     programname, _ = os.path.splitext(filename)
-    print(programname)
-    model = getmodel(sys.argv[1])
-    ti = model(programname, programdata)
-    if len(programdata) > 9000:
-        print("Program is likely too large: {0} bytes!".format(len(programdata)))
+    model = TiProgram.getmodel(sys.argv[1])
+    program = TiProgram(programname, programdata, model)
     if copyto is not None:
         shutil.copyfile(ti.programfilename, copyto)
 
