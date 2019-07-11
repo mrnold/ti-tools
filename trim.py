@@ -53,7 +53,7 @@ def main(args):
         mapped.move(initialized.offset, initializer.offset, initializer.size)
         mapped.resize(mapped.size()-initialized.size)
         mapped.seek(zeroglobals.offset)
-        mapped.write('\0'*zeroglobals.size)
+        mapped.write(b'\0'*zeroglobals.size)
         mapped.flush()
         mapped.close()
 

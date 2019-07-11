@@ -19,8 +19,11 @@ class Ti86(object):
     passes = [
         ("<H{length}s", lambda **kw: [0x288e, kw["p"]]),
         ("<H{length}s", lambda **kw: [len(kw["p"]), kw["p"]]),
-        ("<HHBB8sH{length}s", lambda **kw: [0x000C, len(kw["p"]), 0x12, 8, kw["n"], len(kw["p"]), kw["p"]]),
-        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00, kw["c"], len(kw["p"]), kw["p"]]),
+        ("<HHBB8sH{length}s", lambda **kw: [0x000C, len(kw["p"]),
+                                            0x12, 8, kw["n"],
+                                            len(kw["p"]), kw["p"]]),
+        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00,
+                                             kw["c"], len(kw["p"]), kw["p"]]),
         ("<{length}sH", lambda **kw: [kw["p"], sum(bytearray(kw["p"])) & 0xFFFF])
     ]
 
@@ -38,15 +41,22 @@ class Ti84PSE(object):
     passes = [
         ("<H{length}s", lambda **kw: [0x6dbb, kw["p"]]),
         ("<H{length}s", lambda **kw: [len(kw["p"]), kw["p"]]),
-        ("<HHB8sBBH{length}s", lambda **kw: [0x000D, len(kw["p"]), 0x06, kw["n"], 0x00, 0x00, len(kw["p"]), kw["p"]]),
-        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00, kw["c"], len(kw["p"]), kw["p"]]),
+        ("<HHB8sBBH{length}s", lambda **kw: [0x000D, len(kw["p"]), 0x06, kw["n"],
+                                             0x00, 0x00, len(kw["p"]), kw["p"]]),
+        ("<8s3B42sH{length}s", lambda **kw: [kw["m"], 0x1a, 0x0a, 0x00,
+                                             kw["c"], len(kw["p"]), kw["p"]]),
         ("<{length}sH", lambda **kw: [kw["p"], sum(bytearray(kw["p"])) & 0xFFFF])
     ]
 
 class TiProgram(object):
+    """
+    """
     def __init__(self, programname, programdata, model, comment="No comment"):
         programname = os.path.basename(programname)
-        programname = programname.ljust(8, '\0')[0:8]
+        shortname = programname[0:8] # For local display, without null bytes
+        if not isinstance(shortname, bytes):
+            shortname = shortname.encode("ascii")
+        programname = programname.ljust(8, '\0')[0:8] # Null padding for TI-OS
         if not isinstance(programname, bytes):
             programname = programname.encode("ascii")
         print("On-calculator program name: {0}".format(programname.decode("ascii")))
@@ -72,7 +82,7 @@ class TiProgram(object):
         if len(programdata) > model.maximumsize:
             print("Program is likely too large: {0} bytes!".format(len(programdata)))
 
-        self.programfilename = programname+extension
+        self.programfilename = shortname+extension
         with open(self.programfilename, 'wb') as programfile:
             programfile.write(program)
         if isinstance(self.programfilename, bytes):
@@ -92,6 +102,7 @@ class TiProgram(object):
             return None
         return classes[model]
 
+
 def main(args):
     if len(args) < 3:
         print("Usage: python test.py [86,84pse] [file.bin] {output}")
@@ -107,7 +118,7 @@ def main(args):
     model = TiProgram.getmodel(sys.argv[1])
     program = TiProgram(programname, programdata, model)
     if copyto is not None:
-        shutil.copyfile(ti.programfilename, copyto)
+        shutil.copyfile(program.programfilename, copyto)
 
 if __name__ == "__main__":
     main(sys.argv)
