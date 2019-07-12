@@ -107,9 +107,9 @@ def main(args):
     if len(args) < 3:
         print("Usage: python test.py [86,84pse] [file.bin] {output}")
         return
-    copyto = None
+    moveto = None
     if len(args) == 4:
-        copyto = sys.argv[3]
+        moveto = sys.argv[3]
     filename = sys.argv[2]
     datalength = os.path.getsize(filename)
     with open(filename, 'rb') as datafile:
@@ -117,8 +117,8 @@ def main(args):
     programname, _ = os.path.splitext(filename)
     model = TiProgram.getmodel(sys.argv[1])
     program = TiProgram(programname, programdata, model)
-    if copyto is not None:
-        shutil.copyfile(program.programfilename, copyto)
+    if moveto is not None:
+        shutil.move(program.programfilename, moveto)
 
 if __name__ == "__main__":
     main(sys.argv)

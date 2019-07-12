@@ -17,7 +17,6 @@ bin/p3test.bin: bin/p3test.ihx
 
 bin/p3test.86p: bin/p3test.bin
 	python3 ../binto86p.py 86 bin/p3test.bin $@
-	rm p3test.86p
 
 bin/p2test.rel: test.c
 	@mkdir -p $(dir $@)
@@ -33,4 +32,3 @@ bin/p2test.bin: bin/p2test.ihx
 
 bin/p2test.86p: bin/p2test.bin
 	python2 ../binto86p.py 86 bin/p2test.bin $@
-	rm p2test.86p
